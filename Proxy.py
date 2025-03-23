@@ -111,15 +111,14 @@ while True:
     fileExists = os.path.isfile(cacheLocation)
     
     # Check wether the file is currently in the cache
-    cacheFile = open(cacheLocation, "r")
+    cacheFile = open(cacheLocation, "rb")
     cacheData = cacheFile.readlines()
 
     print ('Cache hit! Loading from cache file: ' + cacheLocation)
     # ProxyServer finds a cache hit
     # Send back response to client 
     # ~~~~ INSERT CODE ~~~~
-    response = "".join(cacheData)
-    clientSocket.sendall(response.encode())
+    clientSocket.sendall(b"".join(cacheData) if isinstance(cacheData[0], bytes) else "".join(cacheData).encode())
     # ~~~~ END CODE INSERT ~~~~
     cacheFile.close()
     print ('Sent to the client:')
@@ -183,8 +182,6 @@ while True:
             break
       except socket.timeout:  
         print('Timeout error')
-      finally:
-        originServerSocket.settimeout(None)
       # ~~~~ END CODE INSERT ~~~~
       # Send the response to the client
       # ~~~~ INSERT CODE ~~~~
@@ -203,6 +200,7 @@ while True:
         print("Error decoding response: " + str(e))
         
         clientSocket.sendall(response_bytes)
+
       # ~~~~ END CODE INSERT ~~~~
 
       # Create a new file in the cache for the requested file.
@@ -214,9 +212,20 @@ while True:
 
       # Save origin server response in the cache file
       # ~~~~ INSERT CODE ~~~~
+      cacheDir, _ = os.path.split(cacheLocation)
+      if not os.path.exists(cacheDir):
+        try:
+            os.makedirs(cacheDir)
+        except Exception as e:
+            print(f"Error creating cache directory: {str(e)}")
+            pass  
       cacheFile.write(response_bytes)
-      if is_404:
-        print("Cached a 404 Not Found response")
+      try:
+        cacheFile.write(response_bytes)
+        if is_404:
+          print("Cached a 404 Not Found response")
+      except Exception as e:
+        print("Error writing to cache file: " + str(e))
       # ~~~~ END CODE INSERT ~~~~
       cacheFile.close()
       print ('cache file closed')
