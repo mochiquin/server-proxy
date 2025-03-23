@@ -173,17 +173,36 @@ while True:
       # Get the response from the origin server
       # ~~~~ INSERT CODE ~~~~
       response_bytes = b""
-      while True:
-        data = originServerSocket.recv(BUFFER_SIZE)
-        if len(data) > 0:
-          response_bytes += data
-        else:
-          break
+      originServerSocket.settimeout(10) #seting the timeout to 10 seconds
+      try:
+        while True:
+          data = originServerSocket.recv(BUFFER_SIZE)
+          if len(data) > 0:
+            response_bytes += data
+          else:
+            break
+      except socket.timeout:  
+        print('Timeout error')
+      finally:
+        originServerSocket.settimeout(None)
       # ~~~~ END CODE INSERT ~~~~
-
       # Send the response to the client
       # ~~~~ INSERT CODE ~~~~
-      clientSocket.sendall(response_bytes)
+      # check the response code is 404
+      is_404 = False
+      try:
+        response_text = response_bytes.decode('utf-8')
+        response_lines = response_text.split("\r\n")
+        if len(response_lines) > 0:
+          status_line = response_lines[0]
+          print("status line: " + status_line)
+          if "404 Not Found" in status_line:
+            is_404 = True
+            print("404 Not Found")
+      except Exception as e:  
+        print("Error decoding response: " + str(e))
+        
+        clientSocket.sendall(response_bytes)
       # ~~~~ END CODE INSERT ~~~~
 
       # Create a new file in the cache for the requested file.
@@ -196,6 +215,8 @@ while True:
       # Save origin server response in the cache file
       # ~~~~ INSERT CODE ~~~~
       cacheFile.write(response_bytes)
+      if is_404:
+        print("Cached a 404 Not Found response")
       # ~~~~ END CODE INSERT ~~~~
       cacheFile.close()
       print ('cache file closed')
