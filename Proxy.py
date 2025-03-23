@@ -107,6 +107,7 @@ while True:
         cacheLocation = cacheLocation + 'default'
 
     print ('Cache location:\t\t' + cacheLocation)
+    cacheLocation = cacheLocation.replace('?', '_').replace('&', '_').replace('=', '_').replace(':', '_')
 
     fileExists = os.path.isfile(cacheLocation)
     
@@ -185,17 +186,27 @@ while True:
       # ~~~~ END CODE INSERT ~~~~
       # Send the response to the client
       # ~~~~ INSERT CODE ~~~~
-      # check the response code is 404
+      # check the response code is a 302 redirect
       is_404 = False
+      is_redirect = False
+      redirect_url = None
+
       try:
         response_text = response_bytes.decode('utf-8')
         response_lines = response_text.split("\r\n")
         if len(response_lines) > 0:
           status_line = response_lines[0]
           print("status line: " + status_line)
-          if "404 Not Found" in status_line:
+          if"302" in status_line:
+            is_redirect=True
+            print("302 Found")
+            clientSocket.sendall(response_bytes) #send the response to the client
+          elif "404 Not Found" in status_line:
             is_404 = True
             print("404 Not Found")
+            clientSocket.sendall(response_bytes)
+          else:
+            clientSocket.sendall(response_bytes)
       except Exception as e:  
         print("Error decoding response: " + str(e))
         
@@ -212,11 +223,12 @@ while True:
 
       # Save origin server response in the cache file
       # ~~~~ INSERT CODE ~~~~
-      cacheDir, _ = os.path.split(cacheLocation)
-      if not os.path.exists(cacheDir):
-        try:
+      if not is_redirect:
+        cacheDir, _ = os.path.split(cacheLocation)
+        if not os.path.exists(cacheDir):
+          try:
             os.makedirs(cacheDir)
-        except Exception as e:
+          except Exception as e:
             print(f"Error creating cache directory: {str(e)}")
             pass  
       cacheFile.write(response_bytes)
@@ -226,6 +238,7 @@ while True:
           print("Cached a 404 Not Found response")
       except Exception as e:
         print("Error writing to cache file: " + str(e))
+        
       # ~~~~ END CODE INSERT ~~~~
       cacheFile.close()
       print ('cache file closed')
