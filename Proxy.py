@@ -223,21 +223,66 @@ while True:
 
       # Save origin server response in the cache file
       # ~~~~ INSERT CODE ~~~~
-      if not is_redirect:
-        cacheDir, _ = os.path.split(cacheLocation)
-        if not os.path.exists(cacheDir):
-          try:
-            os.makedirs(cacheDir)
-          except Exception as e:
-            print(f"Error creating cache directory: {str(e)}")
-            pass  
-      cacheFile.write(response_bytes)
+      #check the status code and decide whether to cache the response
+
+      need_cache = True
       try:
-        cacheFile.write(response_bytes)
-        if is_404:
-          print("Cached a 404 Not Found response")
+        response_text = response_bytes.decode('utf-8', errors='ignore')
+        response_lines = response_text.split('\r\n')
+        
+        # get the status code
+        status_code = None
+        if len(response_lines) > 0:
+          status_line = response_lines[0]
+          match = re.search(r'HTTP/\d\.\d (\d+)', status_line)
+          if match:
+            status_code = int(match.group(1))
+        
+        # check the cache control header
+        cache_control = None
+        for line in response_lines:
+          if line.lower().startswith('cache-control:'):
+            cache_control = line[14:].strip().lower()
+            break
+        
+        # based on the code and headers, decide whether to cache the response
+        if status_code not in (200, 203, 204, 206, 300, 301, 404, 405, 410, 414, 501):
+          need_cache = False
+        # check Cache-Control header
+        elif cache_control:
+          if 'no-store' in cache_control:
+            need_cache = False
+          elif 'max-age' in cache_control:
+            max_age_match = re.search(r'max-age=(\d+)', cache_control)
+            if max_age_match and int(max_age_match.group(1)) == 0:
+              need_cache = False
+        
+        print(f"Cache decision: need_cache = {need_cache}")
+        
+        # when the need_cache is True, write the response to the cache file
+        if need_cache and not is_redirect:
+          cacheDir, _ = os.path.split(cacheLocation)
+          if not os.path.exists(cacheDir):
+            try:
+              os.makedirs(cacheDir)
+            except Exception as e:
+              print(f"Error creating cache directory: {str(e)}")
+          
+          # write the response to the cache file
+          try:
+            cacheFile.write(response_bytes)
+            print(f"Response cached in {cacheLocation}")
+            if is_404:
+              print("Cached a 404 Not Found response")
+          except Exception as e:
+            print(f"Error writing to cache file: {str(e)}")
+        else:
+          print(f"Response not cached due to: need_cache={need_cache}, is_redirect={is_redirect}")
+          
       except Exception as e:
-        print("Error writing to cache file: " + str(e))
+        print(f"Error processing cache logic: {str(e)}")
+        # when an error occurs, do not cache the response
+        need_cache = False
         
       # ~~~~ END CODE INSERT ~~~~
       cacheFile.close()

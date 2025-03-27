@@ -1,0 +1,38 @@
+HTTP/1.1 200 OK
+Date: Tue, 25 Mar 2025 10:38:29 GMT
+Content-Type: application/json
+Content-Length: 206
+Connection: keep-alive
+Server: gunicorn/19.9.0
+Cache-Control: public, max-age=3600
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+
+{
+  "args": {}, 
+  "headers": {
+    "Host": "httpbin.org", 
+    "X-Amzn-Trace-Id": "Root=1-67e287a5-722f74290f284b9e15276450"
+  }, 
+  "origin": "203.206.11.124", 
+  "url": "http://httpbin.org/cache/3600"
+}
+HTTP/1.1 200 OK
+Date: Tue, 25 Mar 2025 10:38:29 GMT
+Content-Type: application/json
+Content-Length: 206
+Connection: keep-alive
+Server: gunicorn/19.9.0
+Cache-Control: public, max-age=3600
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+
+{
+  "args": {}, 
+  "headers": {
+    "Host": "httpbin.org", 
+    "X-Amzn-Trace-Id": "Root=1-67e287a5-722f74290f284b9e15276450"
+  }, 
+  "origin": "203.206.11.124", 
+  "url": "http://httpbin.org/cache/3600"
+}
